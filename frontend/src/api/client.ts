@@ -9,7 +9,9 @@ import {
   TraceRecord,
 } from '../types';
 
-const BASE_URL = '/api/v1';
+// Keep local development same-origin by default; hosted builds can point at the
+// public Relay API without changing source code.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {

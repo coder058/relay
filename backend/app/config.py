@@ -4,6 +4,7 @@ All numeric thresholds and demo constants are explicitly documented with their
 rationale and origin tag (SOURCE, GUESS, or PLACEHOLDER) per project honesty rules.
 """
 
+import os
 from pathlib import Path
 from pydantic import BaseModel
 
@@ -14,7 +15,7 @@ class Settings(BaseModel):
     # Application info
     app_name: str = "Relay MCP Safety Lab"
     version: str = "0.1.0"
-    environment: str = "development"
+    environment: str = os.getenv("RELAY_ENVIRONMENT", "development")
 
     # Server binding
     host: str = "0.0.0.0"
@@ -28,11 +29,19 @@ class Settings(BaseModel):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000",
+        *[
+            origin.strip()
+            for origin in os.getenv("RELAY_CORS_ORIGINS", "").split(",")
+            if origin.strip()
+        ],
     ]
 
     # Database
     # GUESS: SQLite database path relative to project backend root for zero-setup local execution
-    sqlite_db_path: str = str(Path(__file__).resolve().parent.parent / "relay.db")
+    sqlite_db_path: str = os.getenv(
+        "RELAY_SQLITE_DB_PATH",
+        str(Path(__file__).resolve().parent.parent / "relay.db"),
+    )
 
     # Request limits
     # SOURCE: RFC 7159 and MCP stdio frame safety limit to prevent memory exhaustion from runaway payloads
