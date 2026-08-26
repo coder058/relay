@@ -79,6 +79,13 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [refreshData]);
 
+  const runSafeWalkthrough = useCallback(async () => {
+    for (const step of [1, 2, 4, 5]) {
+      await api.triggerDemoStep(step);
+    }
+    await refreshData();
+  }, [refreshData]);
+
   // Handle human operator decision
   const handleDecideApproval = async (token: string, decision: 'approve' | 'deny', reason?: string) => {
     try {
@@ -137,6 +144,7 @@ export const App: React.FC = () => {
           <div>
             <GuidedDemoStepper
               onTriggerStep={(step) => api.triggerDemoStep(step)}
+              onRunWalkthrough={runSafeWalkthrough}
               onRefreshTraces={refreshData}
             />
 
@@ -153,6 +161,7 @@ export const App: React.FC = () => {
               setFilterDecision={setFilterDecision}
               filterRisk={filterRisk}
               setFilterRisk={setFilterRisk}
+              onRunDemo={runSafeWalkthrough}
             />
           </div>
         )}
@@ -199,3 +208,4 @@ export const App: React.FC = () => {
     </div>
   );
 };
+

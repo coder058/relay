@@ -21,6 +21,10 @@
 
 ## 1. The Problem
 
+### Why this project is in the portfolio
+
+The saved job research contains 329 postings; 122 contain agent/AI, observability, guardrail, human-review, policy, or related signals. That pattern is why Relay was added: it gives the portfolio a concrete example of treating agent tool use as an engineering and operations problem, rather than presenting a generic chatbot demo. The project remains deliberately small and honest.
+
 Autonomous AI agents equipped with Model Context Protocol (MCP) tool-calling capabilities introduce critical operational and security risks:
 1. **Destructive Tool Invocations:** Agents can attempt irreversible mutations (e.g., dropping customer records or issuing destructive API calls) without operator consent.
 2. **Credential & PII Leakage:** Prompts, agent parameters, and tool outputs frequently contain API keys, bearer tokens, or sensitive user data that end up permanently stored in plaintext observability logs.
@@ -71,12 +75,14 @@ flowchart TD
     Tools -->|Tool Output| Redactor
     Redactor -->|Sanitized Trace Record| SQLiteTraces
     RPC -->|Sanitized JSON-RPC Response| Agent
-    Browser -->|Live Observability & Playback| SQLiteTraces
+    Browser -->|Demo Observability & Playback| SQLiteTraces
 ```
 
 ---
 
 ## 3. Quick Start (Run in 2 Minutes)
+
+The dashboard starts empty by design. Click **Run safe walkthrough** to create synthetic traces for safe reads, discovery, a blocked shell call, and redaction. The deletion gate is deliberately manual so the operator can inspect and approve it. These rows are local demo evidence, not production traffic.
 
 ### Option A: Local Python & Node (Recommended)
 
@@ -121,13 +127,13 @@ Access the dashboard at **`http://localhost:5173`** and the API at **`http://loc
 
 | Step | Scenario | Invoked Tool | Policy Decision | Expected System Action |
 |---|---|---|---|---|
-| **1** | **Safe Read** | `read_record` | `ALLOW` (Low Risk) | Automatically executed against local SQLite fixture; trace logged. |
-| **2** | **Discovery** | `list_records` | `ALLOW` (Low Risk) | Transparent passthrough of MCP tool catalog. |
-| **3** | **Destructive Gate** | `delete_record` | `REQUIRE_APPROVAL` | Execution **paused**. Cryptographic single-use token issued; visible in Web Dashboard. |
-| **4** | **Operator Approval** | `delete_record` | `APPROVED` | Operator clicks "Approve" in UI; agent resumes with token; fixture record deleted; token invalidated. |
-| **5** | **Replay Protection** | `delete_record` | `DENY` | Reusing the same token fails immediately (`Invalid or already-consumed token`). |
-| **6** | **Critical Block** | `system_shell_exec` | `DENY` (Critical) | Prohibited command strictly blocked by policy engine. |
-| **7** | **Secret Redaction** | `create_record` | `ALLOW` | API keys (`sk-ant-...`), bearer tokens, and emails are **sanitized** prior to SQLite storage. |
+| **1** | **Safe Read** | `read_record` | `ALLOW` (Low Risk) | Automatically executed against the local SQLite fixture; trace logged. |
+| **2** | **Discovery** | `list_records` | `ALLOW` (Low Risk) | Safe tool discovery is recorded. |
+| **3** | **Destructive Gate** | `delete_record` | `REQUIRE_APPROVAL` | Execution **pauses** and issues a single-use approval token. |
+| **4** | **Critical Block** | `system_shell_exec` | `DENY` (Critical) | Prohibited command is blocked by the local policy engine. |
+| **5** | **Secret Redaction** | `create_record` | `ALLOW` | API keys, bearer tokens, and emails are sanitized before SQLite storage. |
+
+The approval flow is completed separately in the dashboard: inspect the pending request, approve or deny it, then test replay protection by reusing the consumed token.
 
 ---
 
@@ -142,8 +148,8 @@ Access the dashboard at **`http://localhost:5173`** and the API at **`http://loc
 ### Known Prototype Limitations
 - **Not a Production Multi-Tenant Sandbox:** Local demo tools execute within the host Python process against isolated SQLite tables, not inside microVMs (e.g., Firecracker) or gVisor sandboxes.
 - **Heuristic Pattern Redaction:** Regex-based sanitizers can miss unstructured, non-standard high-entropy tokens without common prefixes.
-- **Single Node State:** Approval state and traces reside in a local SQLite file without distributed consensus or KMS secret signing.
-- **Unverified deployment surface:** Docker image startup, hosted deployment, and a real external MCP server were not run in this audit.
+- **Single Node State:** Approval state and traces reside in a local SQLite file without distributed consensus or KMS secret signing. Hosted instances can lose this state when the container is replaced or scaled down.
+- **No external MCP provider:** The checked demo uses safe local fixtures. It is not evidence that Relay has been integrated with a third-party MCP server.
 
 ---
 
@@ -201,3 +207,4 @@ cd frontend && npm run build
 ## License
 
 MIT License. Designed for safety research, demonstrations, and portfolio evaluation.
+
