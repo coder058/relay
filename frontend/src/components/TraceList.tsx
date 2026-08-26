@@ -12,6 +12,7 @@ interface TraceListProps {
   setFilterDecision: (val: string) => void;
   filterRisk: string;
   setFilterRisk: (val: string) => void;
+  onRunDemo: () => void;
 }
 
 export const TraceList: React.FC<TraceListProps> = ({
@@ -22,6 +23,7 @@ export const TraceList: React.FC<TraceListProps> = ({
   setFilterDecision,
   filterRisk,
   setFilterRisk,
+  onRunDemo,
 }) => {
   return (
     <div className="card">
@@ -88,7 +90,14 @@ export const TraceList: React.FC<TraceListProps> = ({
             {traces.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-secondary)' }}>
-                  No traces recorded yet. Run a guided scenario or execute an MCP tool to see live traces.
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                    <span>No traces recorded in this ephemeral demo session yet.</span>
+                    <button className="btn btn-primary btn-sm" onClick={onRunDemo}>
+                      <Play size={12} />
+                      Run safe walkthrough
+                    </button>
+                    <small style={{ maxWidth: 460 }}>The rows below are generated only when you run a synthetic local scenario; they are not evidence of production traffic.</small>
+                  </div>
                 </td>
               </tr>
             ) : (

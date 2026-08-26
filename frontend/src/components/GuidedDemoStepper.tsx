@@ -4,13 +4,15 @@ import { DemoStepResponse } from '../types';
 
 interface GuidedDemoStepperProps {
   onTriggerStep: (step: number) => Promise<DemoStepResponse>;
+  onRunWalkthrough: () => Promise<void>;
   onRefreshTraces: () => void;
 }
 
-export const GuidedDemoStepper: React.FC<GuidedDemoStepperProps> = ({ onTriggerStep, onRefreshTraces }) => {
+export const GuidedDemoStepper: React.FC<GuidedDemoStepperProps> = ({ onTriggerStep, onRunWalkthrough, onRefreshTraces }) => {
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastResult, setLastResult] = useState<DemoStepResponse | null>(null);
+  const [walkthroughError, setWalkthroughError] = useState<string | null>(null);
 
   const steps = [
     {
@@ -59,6 +61,19 @@ export const GuidedDemoStepper: React.FC<GuidedDemoStepperProps> = ({ onTriggerS
     }
   };
 
+  const handleWalkthrough = async () => {
+    setIsLoading(true);
+    setWalkthroughError(null);
+    try {
+      await onRunWalkthrough();
+      onRefreshTraces();
+    } catch (err) {
+      setWalkthroughError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="card" style={{ marginBottom: 24, borderLeft: '4px solid var(--accent-blue)' }}>
       <div className="card-header" style={{ padding: '12px 20px' }}>
@@ -66,12 +81,39 @@ export const GuidedDemoStepper: React.FC<GuidedDemoStepperProps> = ({ onTriggerS
           <Play size={16} color="var(--accent-blue)" />
           <span>Guided Safety Scenarios (Reproducible Demo)</span>
         </div>
-        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          Click any scenario to simulate agent tool invocation
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            Synthetic local scenarios - no external model or paid API
+          </span>
+          <button className="btn btn-primary btn-sm" disabled={isLoading} onClick={handleWalkthrough}>
+            <Play size={12} />
+            {isLoading ? 'Running...' : 'Run safe walkthrough'}
+          </button>
+        </div>
       </div>
 
       <div className="card-body" style={{ padding: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
+          {[
+            ['ALLOW', 'Safe reads pass'],
+            ['REVIEW', 'Deletion pauses'],
+            ['DENY', 'Shell is blocked'],
+            ['REDACT', 'Secrets leave no raw trace'],
+          ].map(([label, description]) => (
+            <div key={label} style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '9px 10px', background: '#fafafa' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: 'var(--text-primary)' }}>{label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>{description}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+          The walkthrough runs safe read, discovery, critical-block, and redaction scenarios. The deletion gate stays manual so you can inspect and approve it yourself.
+        </p>
+        {walkthroughError && (
+          <div role="alert" style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: 10, marginBottom: 12, fontSize: 12 }}>
+            Walkthrough failed: {walkthroughError}
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: lastResult ? 16 : 0 }}>
           {steps.map((s) => (
             <button
