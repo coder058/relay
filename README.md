@@ -31,6 +31,10 @@ For stdio, launch `python -m app.mcp.jobs_server` from `backend` using that envi
 
 ## Verification and limits
 
+[Observed job-search walkthrough](JOB_SEARCH_WALKTHROUGH.md): a real query,
+an unsuitable first result, a revised query and source-preserving export.
+This is maintainer testing, not user-adoption evidence.
+
 Run `python -m pytest -q` in `backend`; run `npm run build` in `frontend`. As checked on 2026-08-28, 46 backend tests pass, including the historical suite and new evidence, validation, duplicate retention, board-cache, official SDK in-memory, real subprocess stdio and real HTTP tests. The protocol tests use explicitly synthetic listings; they do not prove employer vacancy status or production readiness. Browser checks additionally used current public listings and inspected their actual quotes.
 
 Literal matching is intentionally limited: spelling aliases are explicit, and semantic equivalence is not inferred. Text signals currently cover selected English, Spanish and German terms, not every language. There is no user authentication, applicant tracking or automatic refresh of pasted listings. Operational limits are uncalibrated bounds, documented in code, not performance claims.
