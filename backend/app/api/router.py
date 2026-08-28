@@ -9,6 +9,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.mcp import router as mcp_router
 from app.api.v1.policies import router as policies_router
 from app.api.v1.traces import router as traces_router
+from app.api.v1.jobs import router as jobs_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,3 +21,4 @@ api_router.include_router(policies_router)
 api_router.include_router(benchmarks_router)
 api_router.include_router(fixtures_router)
 api_router.include_router(demo_router)
+api_router.include_router(jobs_router)

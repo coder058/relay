@@ -16,8 +16,19 @@ import { PlaybackModal } from './components/PlaybackModal';
 import { BenchmarkRunner } from './components/BenchmarkRunner';
 import { PolicyViewer } from './components/PolicyViewer';
 import { FixtureInspector } from './components/FixtureInspector';
+import { JobDesk } from './components/JobDesk';
 
 export const App: React.FC = () => {
+  const [lab, setLab] = useState(window.location.hash === '#lab');
+  useEffect(() => {
+    const navigate = () => setLab(window.location.hash === '#lab');
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
+  return lab ? <><div className="lab-notice"><a href="#">← Job evidence desk</a> · Historical lab: synthetic fixtures, separate from job reviews.</div><SafetyLab /></> : <JobDesk />;
+};
+
+const SafetyLab: React.FC = () => {
   const [serverStatus, setServerStatus] = useState<'online' | 'offline' | 'loading'>('loading');
   const [activeTab, setActiveTab] = useState<string>('traces');
 

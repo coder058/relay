@@ -1,0 +1,9 @@
+# Upload only application build inputs, never local databases, environments or fixtures.
+*
+!Dockerfile
+!requirements.txt
+!pyproject.toml
+!app/
+!app/**
+**/__pycache__/**
+**/*.pyc
