@@ -164,3 +164,4 @@ export const GuidedDemoStepper: React.FC<GuidedDemoStepperProps> = ({ onTriggerS
     </div>
   );
 };
+

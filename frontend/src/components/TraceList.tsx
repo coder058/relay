@@ -169,3 +169,4 @@ export const TraceList: React.FC<TraceListProps> = ({
     </div>
   );
 };
+

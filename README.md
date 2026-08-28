@@ -248,3 +248,4 @@ cd frontend && npm run build
 ## License
 
 MIT License. Designed for safety research, demonstrations, and portfolio evaluation.
+

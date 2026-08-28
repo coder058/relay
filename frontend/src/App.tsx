@@ -219,3 +219,4 @@ const SafetyLab: React.FC = () => {
     </div>
   );
 };
+
