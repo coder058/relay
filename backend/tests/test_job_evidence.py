@@ -106,6 +106,36 @@ async def test_live_board_normalization_filter_and_cache(monkeypatch):
     assert len(calls) == 1
 
 
+@pytest.mark.asyncio
+async def test_board_summary_counts_listings_and_retains_quotes(monkeypatch):
+    async def download():
+        return {
+            "jobs": [
+                job().model_copy(update={"title": "Python role", "url": "https://example.test/1"}).model_dump(),
+                JobInput(title="Rust role", company="Synthetic test company",
+                         description="Rust only.", url="https://example.test/2").model_dump(),
+            ],
+            "fetched_at": "synthetic-test-timestamp",
+        }
+
+    monkeypatch.setattr(job_board, "_cached", None)
+    monkeypatch.setattr(job_board, "_download", download)
+    result = await job_board.summarize_jobs(skills=["Python", "Rust", "SQL"])
+
+    assert result["listing_count"] == 2
+    assert [item["listing_count"] for item in result["skills"]] == [1, 1, 0]
+    assert result["skills"][0]["evidence"][0]["quotes"][0] == {
+        "line": 1, "text": "Python and PostgreSQL."
+    }
+    assert "not a demand score" in result["method"]
+
+
+@pytest.mark.asyncio
+async def test_board_summary_rejects_empty_skills():
+    with pytest.raises(ValueError):
+        await job_board.summarize_jobs(skills=[])
+
+
 def test_board_bad_rows_are_skipped_without_guessing_dates():
     assert job_board._normalize({"title": "missing body"}) is None
     row = job_board._normalize({"title": "Role", "description": "Body", "remote": "false"})

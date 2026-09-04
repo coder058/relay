@@ -19,7 +19,9 @@ PAYLOAD = {"jobs": [{"title": "Synthetic role", "description": "Python required.
 
 async def assert_protocol(client):
     tools = await client.list_tools()
-    assert {tool.name for tool in tools.tools} == {"search_job_board", "review_job_evidence", "export_job_review"}
+    assert {tool.name for tool in tools.tools} == {
+        "search_job_board", "summarize_job_board", "review_job_evidence", "export_job_review"
+    }
     result = await client.call_tool("review_job_evidence", PAYLOAD)
     assert not result.is_error
     assert result.structured_content["jobs"][0]["skill_evidence"][0]["status"] == "mentioned"

@@ -1,4 +1,4 @@
-"""Relay MCP Safety Lab - Main FastAPI Application."""
+"""Relay Job Evidence - Main FastAPI application."""
 
 from contextlib import asynccontextmanager
 import time

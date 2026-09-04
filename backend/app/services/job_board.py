@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-from app.services.job_evidence import JobInput, MAX_TEXT, plain_text
+from app.services.job_evidence import JobInput, MAX_SKILLS, MAX_TEXT, _mentions, plain_text
 
 # SOURCE: Arbeitnow public job-board API, verified with a read-only request 2026-08-28.
 BOARD_URL = "https://www.arbeitnow.com/api/job-board-api"
@@ -24,6 +24,19 @@ _lock = asyncio.Lock()
 
 class BoardUnavailable(Exception):
     pass
+
+
+def _clean_skills(skills: list[str]) -> list[str]:
+    if not skills or len(skills) > MAX_SKILLS:
+        raise ValueError(f"Choose between 1 and {MAX_SKILLS} skills.")
+    cleaned: list[str] = []
+    for value in skills:
+        value = value.strip()
+        if not value or len(value) > MAX_QUERY_LENGTH:
+            raise ValueError("Each skill must be a short nonempty label.")
+        if value.casefold() not in {item.casefold() for item in cleaned}:
+            cleaned.append(value)
+    return cleaned
 
 
 def _normalize(row: dict) -> JobInput | None:
@@ -83,3 +96,26 @@ async def search_jobs(query: str = "", location: str = "", remote_only: bool = F
             "fetched_at": snapshot["fetched_at"], "source_url": BOARD_URL,
             "coverage": "Searches the board's latest API page, not every opening or the private codingjob store.",
             "privacy": "Your search is filtered in service memory, not sent to the board. No application is submitted."}
+
+
+async def summarize_jobs(query: str = "", location: str = "", remote_only: bool = False,
+                         skills: list[str] | None = None) -> dict:
+    """Count literal skill mentions and retain the exact listings behind every count."""
+    selected = _clean_skills(skills or [])
+    board = await search_jobs(query, location, remote_only)
+    summaries = []
+    for skill in selected:
+        evidence = []
+        for job in board["jobs"]:
+            lines = plain_text(job["description"]).splitlines()
+            quotes = [{"line": index, "text": line} for index, line in enumerate(lines, start=1)
+                      if _mentions(skill, line)]
+            if quotes:
+                evidence.append({"title": job["title"], "company": job["company"], "url": job["url"],
+                                 "quotes": quotes})
+        summaries.append({"skill": skill, "listing_count": len(evidence), "evidence": evidence})
+    return {"skills": summaries, "listing_count": len(board["jobs"]),
+            "matching_count": board["matching_count"], "scanned_count": board["scanned_count"],
+            "fetched_at": board["fetched_at"], "source_url": board["source_url"],
+            "coverage": board["coverage"],
+            "method": "Literal mention count per listing; not a demand score, requirement classifier, or market estimate."}

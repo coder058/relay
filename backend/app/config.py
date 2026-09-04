@@ -13,8 +13,8 @@ class Settings(BaseModel):
     """Application runtime settings."""
 
     # Application info
-    app_name: str = "Relay MCP Safety Lab"
-    version: str = "0.1.0"
+    app_name: str = "Relay Job Evidence"
+    version: str = "0.2.0"
     environment: str = os.getenv("RELAY_ENVIRONMENT", "development")
 
     # Server binding

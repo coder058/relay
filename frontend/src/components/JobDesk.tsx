@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowUpRight, Check, FileText, Plus, Search, Terminal, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpRight, BarChart3, Check, FileText, Plus, Search, Terminal, X } from 'lucide-react';
 import './JobDesk.css';
 
 type Job = { title?: string; company?: string; description: string; url?: string; source?: string; published_at?: string | null; location?: string; remote?: boolean | null };
@@ -8,6 +8,8 @@ type Evidence = { skill: string; status: string; evidence: Quote[] };
 type ReviewedJob = Job & { id: string; source_text: string; source_sha256: string; skill_evidence: Evidence[]; signals: Record<string, Quote[]>; questions: string[] };
 type Report = { jobs: ReviewedJob[]; duplicates: { title: string; content_changed: boolean; alternate: ReviewedJob }[]; reviewed_at: string; method: string };
 type Board = { jobs: Job[]; matching_count: number; scanned_count: number; fetched_at: string; coverage: string };
+type SkillSummary = { skill: string; listing_count: number; evidence: { title: string; company: string; url?: string; quotes: Quote[] }[] };
+type BoardSummary = { skills: SkillSummary[]; listing_count: number; matching_count: number; scanned_count: number; fetched_at: string; coverage: string; method: string };
 const BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 // SOURCE: backend JobInput/ReviewInput and JobPrivacyMiddleware limits.
 const MAX_JOBS = 20;
@@ -59,20 +61,23 @@ function parseWorkspace(raw: string): { jobs: Job[]; skills: string } {
 export function JobDesk() {
   const [tab, setTab] = useState<'board' | 'paste'>('board');
   const [board, setBoard] = useState<Board | null>(null);
+  const [summary, setSummary] = useState<BoardSummary | null>(null);
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [remote, setRemote] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [skills, setSkills] = useState('');
+  const [skills, setSkills] = useState('Python, TypeScript, PostgreSQL, SQL, AI, MCP');
   const [report, setReport] = useState<Report | null>(null);
   const [selected, setSelected] = useState(0); // SOURCE: initial array selection, not a ranking.
   const [paste, setPaste] = useState({ title: '', company: '', url: '', description: '' });
   const fileRef = useRef<HTMLInputElement>(null);
   const searchVersion = useRef(0); // SOURCE: request sequence prevents stale search responses replacing newer results.
+  const summaryVersion = useRef(0); // SOURCE: request sequence prevents stale aggregate responses replacing newer results.
   const current = report?.jobs[selected];
 
   async function search() {
@@ -85,16 +90,29 @@ export function JobDesk() {
     } catch (e) { if (version === searchVersion.current) setError(e instanceof Error ? e.message : 'Could not read the board.'); }
     finally { if (version === searchVersion.current) setSearching(false); }
   }
+  const selectedSkills = () => skills.split(',').map(s => s.trim()).filter(Boolean)
+    .filter((skill, index, values) => values.findIndex(other => other.toLowerCase() === skill.toLowerCase()) === index);
+  async function summarize() {
+    const chosen = selectedSkills();
+    if (!chosen.length) { setSummary(null); return; }
+    const version = ++summaryVersion.current;
+    setSummarizing(true); setError('');
+    try {
+      const data = await (await request('summary', { query, location, remote_only: remote, skills: chosen })).json();
+      if (version === summaryVersion.current) setSummary(data);
+    } catch (e) { if (version === summaryVersion.current) setError(e instanceof Error ? e.message : 'Could not count board evidence.'); }
+    finally { if (version === summaryVersion.current) setSummarizing(false); }
+  }
+  function runBoardQuery() { void search(); void summarize(); }
   // SOURCE: initial read of a public board; never submits or changes external records.
-  useEffect(() => { void search(); return () => { searchVersion.current++; }; }, []);
+  useEffect(() => { runBoardQuery(); return () => { searchVersion.current++; summaryVersion.current++; }; }, []);
 
   function changed() { setReport(null); setNotice(''); setError(''); }
   function add(job: Job) {
     if (jobs.length >= MAX_JOBS) { setError('Review up to 20 listings at a time. Export this batch before starting another.'); return; }
     changed(); setJobs([...jobs, job]); setNotice('Added to your review queue.');
   }
-  const payload = () => ({ jobs, skills: skills.split(',').map(s => s.trim()).filter(Boolean)
-    .filter((skill, index, values) => values.findIndex(other => other.toLowerCase() === skill.toLowerCase()) === index) });
+  const payload = () => ({ jobs, skills: selectedSkills() });
   async function review() {
     setWorking(true); setError(''); setNotice('');
     try { const result = await (await request('review', payload())).json(); setReport(result); setSelected(0); }
@@ -116,16 +134,19 @@ export function JobDesk() {
   const endpoint = new URL(BASE, window.location.origin).origin + '/tools/mcp';
 
   return <div className="job-desk">
-    <header className="desk-header"><a className="desk-brand" href="#"><span aria-hidden="true">↳</span> relay<span className="desk-brand-sub">JOB EVIDENCE</span></a>
-      <nav aria-label="Project links"><a href="https://github.com/coder058/relay" target="_blank" rel="noreferrer">Source <ArrowUpRight size={14} /></a><a href="#lab">Safety lab</a><a href="https://coder058.github.io/profile/">Jordi Lluís ↗</a></nav></header>
+    <header className="desk-header"><a className="desk-brand" href="#"><span aria-hidden="true">↳</span> Relay</a></header>
     <main className="desk-main">
-      <div className="desk-heading"><div><p className="eyebrow">A WORKSPACE, NOT A MATCH SCORE</p><h1>Find the evidence.<br /><span>Make your own call.</span></h1><p>Compare real job listings against the skills you choose.<br />Keep the source, inspect the wording, export the questions.</p></div>
+      <div className="desk-heading"><div><p className="eyebrow">MCP · PYTHON · TYPESCRIPT</p><h1>Research a role<br /><span>from the source.</span></h1><p>Search public listings, compare the exact requirements<br />and export a review you can check.</p></div>
         <div className="desk-contract"><Check size={18} /><div><strong>Read-only by design</strong><p>No applications sent. No AI-written credentials.<br />No review history stored on the server.</p></div></div></div>
       {error && <div className="desk-error" role="alert">{error} <button onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
       {notice && <p className="desk-notice" role="status">{notice}</p>}
+      <section className="desk-panel summary-panel" aria-label="Current public board evidence">
+        <div className="panel-heading"><div><h2><span>01</span> What recurs on the latest public page?</h2><p>Literal mentions only. Every count opens back to its listings.</p></div><button className="desk-button" disabled={summarizing || !selectedSkills().length} onClick={() => void summarize()}><BarChart3 size={15} />{summarizing ? 'Counting…' : 'Refresh counts'}</button></div>
+        <div className="summary-body" aria-busy={summarizing}>{!summary && <p className="desk-empty">Reading the current board evidence…</p>}{summary && <><div className="summary-bars">{summary.skills.map(item => { const max = Math.max(1, ...summary.skills.map(row => row.listing_count)); const width = `${(item.listing_count / max) * 100}%`; return <details className="summary-skill" key={item.skill}><summary><span>{item.skill}</span><i><b style={{ width }}></b></i><strong>{item.listing_count} / {summary.listing_count}</strong></summary><div className="summary-sources">{item.evidence.length ? item.evidence.map((source, index) => <article key={`${source.url}-${index}`}><div><strong>{source.title}</strong><span>{source.company}</span></div>{source.quotes.map(quote => <blockquote key={quote.line}><small>LINE {quote.line}</small>{quote.text}</blockquote>)}{source.url && <a href={source.url} target="_blank" rel="noreferrer">Original listing ↗</a>}</article>) : <p>No literal mention in this result.</p>}</div></details> })}</div><div className="summary-boundary"><p>{summary.method}</p><p>{summary.listing_count} filtered listings · {summary.scanned_count} valid listings scanned on the latest API page · fetched {date(summary.fetched_at)}.</p><p>{summary.coverage}</p></div></>}</div>
+      </section>
       <div className="desk-columns">
-        <section className="desk-panel desk-sources" aria-label="Find listings"><div className="panel-heading"><h2><span>01</span> Find listings</h2><div className="source-tabs"><button aria-pressed={tab === 'board'} onClick={() => setTab('board')}>Public board</button><button aria-pressed={tab === 'paste'} onClick={() => setTab('paste')}>Paste a listing</button></div></div>
-          {tab === 'board' ? <><form className="board-search" onSubmit={e => { e.preventDefault(); void search(); }}>
+        <section className="desk-panel desk-sources" aria-label="Find listings"><div className="panel-heading"><h2><span>02</span> Find listings</h2><div className="source-tabs"><button aria-pressed={tab === 'board'} onClick={() => setTab('board')}>Public board</button><button aria-pressed={tab === 'paste'} onClick={() => setTab('paste')}>Paste a listing</button></div></div>
+          {tab === 'board' ? <><form className="board-search" onSubmit={e => { e.preventDefault(); runBoardQuery(); }}>
             <label>Keyword<input value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="Python, backend, data…" /></label>
             <label>Location<input value={location} onChange={e => setLocation(e.target.value)} maxLength={100} placeholder="City or country" /></label>
             <div className="search-bottom"><label className="check-label"><input type="checkbox" checked={remote} onChange={e => setRemote(e.target.checked)} />Remote tag only</label><button className="desk-button primary" disabled={searching} type="submit"><Search size={15} />{searching ? 'Reading board…' : 'Search'}</button></div>
@@ -139,7 +160,7 @@ export function JobDesk() {
             <label>Listing text<textarea required rows={11} maxLength={MAX_TEXT} value={paste.description} onChange={e => setPaste({ ...paste, description: e.target.value })} placeholder="Paste the full job description, including requirements and location restrictions." /></label>
             <button className="desk-button primary" disabled={working || !paste.description.trim() || jobs.length >= MAX_JOBS}><Plus size={15} />Add to review</button></form>}
         </section>
-        <section className="desk-panel review-queue" aria-label="Review queue"><div className="panel-heading"><h2><span>02</span> Your review queue</h2><span className="queue-count">{jobs.length} / {MAX_JOBS}</span></div>
+        <section className="desk-panel review-queue" aria-label="Review queue"><div className="panel-heading"><h2><span>03</span> Your review queue</h2><span className="queue-count">{jobs.length} / {MAX_JOBS}</span></div>
           <div className="queue-body"><label>Skills to look for <span>(comma-separated)</span><input disabled={working} value={skills} onChange={e => { changed(); setSkills(e.target.value); }} placeholder="Python, TypeScript, PostgreSQL" /></label><p className="field-note">Your own list. Mentions are not necessarily requirements; missing text does not mean you lack a skill.</p>
           {jobs.length === 0 ? <div className="queue-empty"><FileText size={28} /><h3>Build a shortlist worth reading.</h3><p>Add a public listing or paste one you found.<br />Every result will point back to its source text.</p></div> : <ol className="queue-list">{jobs.map((job, index) => <li key={index}><div><strong>{job.title}</strong><span>{job.company}</span></div><button disabled={working} aria-label={`Remove ${job.title}`} onClick={() => { changed(); setJobs(jobs.filter((_, i) => i !== index)); }}><X size={16} /></button></li>)}</ol>}
           <button className="desk-button primary review-button" disabled={!jobs.length || working} onClick={() => void review()}>{working ? 'Processing…' : 'Review evidence'}<ArrowUpRight size={17} /></button>
@@ -148,7 +169,7 @@ export function JobDesk() {
           <div className="workspace-actions"><button disabled={!jobs.length || working} onClick={() => download(workspace(), 'relay-workspace.json', 'application/json')}>Export workspace JSON</button><button disabled={working} onClick={() => fileRef.current?.click()}>Import workspace JSON</button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={async e => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; try { if (file.size > MAX_FILE) throw new Error('Workspace exceeds the 2 MB limit.'); restore(await file.text()); } catch (err) { setError(err instanceof Error ? err.message : 'Import failed.'); } }} /></div></div>
         </section>
       </div>
-      {report && <section className="desk-panel evidence-panel" aria-label="Evidence results"><div className="panel-heading"><div><h2><span>03</span> Evidence, with the receipts</h2><p>Reviewed {date(report.reviewed_at)} · No eligibility decision or application submitted.</p></div><button className="desk-button" disabled={working} onClick={() => void exportMarkdown()}><ArrowDownToLine size={16} />Export Markdown</button></div>
+      {report && <section className="desk-panel evidence-panel" aria-label="Evidence results"><div className="panel-heading"><div><h2><span>04</span> Evidence, with the receipts</h2><p>Reviewed {date(report.reviewed_at)} · No eligibility decision or application submitted.</p></div><button className="desk-button" disabled={working} onClick={() => void exportMarkdown()}><ArrowDownToLine size={16} />Export Markdown</button></div>
         {report.duplicates.length > 0 && <details className="duplicate-notice"><summary>{report.duplicates.length} duplicate record(s) grouped — inspect alternate text</summary>{report.duplicates.map((dupe, i) => <div key={i}><strong>{dupe.title}: {dupe.content_changed ? 'text changed' : 'same text'}</strong><pre>{dupe.alternate.source_text}</pre></div>)}</details>}
         <div className="comparison-scroll"><table className="comparison"><thead><tr><th>Listing</th>{payload().skills.map((skill, i) => <th key={`${skill}-${i}`}>{skill}</th>)}<th>Inspect</th></tr></thead><tbody>{report.jobs.map((job, index) => <tr key={job.id} className={index === selected ? 'selected' : ''}><td><strong>{job.title}</strong><small>{job.company}</small></td>{job.skill_evidence.map(item => <td key={item.skill}><span className={item.status === 'mentioned' ? 'mention' : 'not-found'}>{item.status === 'mentioned' ? 'Mentioned' : 'Not found'}</span></td>)}<td><button className="desk-button" onClick={() => setSelected(index)} aria-pressed={selected === index}>Read evidence</button></td></tr>)}</tbody></table></div>
         {current && <div className="evidence-detail"><div><p className="eyebrow">SELECTED LISTING</p><h3>{current.title}</h3><p>{current.company} · {current.location}</p><p className="field-note">{current.source}</p>{current.url && <a href={current.url} target="_blank" rel="noreferrer">Open original listing <ArrowUpRight size={14} /></a>}
@@ -158,8 +179,8 @@ export function JobDesk() {
           <div className="source-document"><h4>Source text</h4><p>HTML removed; whitespace normalized. Line numbers below match every quote.</p><ol>{current.source_text.split('\n').map((line, index) => <li key={index}>{line}</li>)}</ol><details><summary>Content fingerprint (SHA-256)</summary><code>{current.source_sha256}</code><p>Identifies this text snapshot. Does not certify the employer or the listing.</p></details></div>
         </div>}
       </section>}
-      <details className="mcp-guide"><summary><Terminal size={17} /> Use the same workflow through MCP <span>Developer notes</span></summary><div><p>The official MCP SDK exposes three read-only tools: <code>search_job_board</code>, <code>review_job_evidence</code>, <code>export_job_review</code>. The browser uses the same services through HTTP; it is not an AI agent.</p><p>Streamable HTTP endpoint: <code>{endpoint}</code></p><p>Local stdio, from the backend directory after installing requirements:</p><pre>python -m app.mcp.jobs_server</pre><p>No API key or paid model is needed. Public board descriptions are untrusted data, not instructions. The historical safety lab does not approve or govern these read-only tools.</p></div></details>
-      <footer className="desk-footer"><span>Built by Jordi Lluís · Python / TypeScript / MCP</span><span>Public source. Explicit unknowns. Your decision.</span></footer>
+      <details className="mcp-guide"><summary><Terminal size={17} /> Use the same workflow through MCP <span>Developer notes</span></summary><div><p>The official MCP SDK exposes four read-only tools: <code>search_job_board</code>, <code>summarize_job_board</code>, <code>review_job_evidence</code>, <code>export_job_review</code>. The browser uses the same services through HTTP; it is not an AI agent.</p><p>Streamable HTTP endpoint: <code>{endpoint}</code></p><p>Local stdio, from the backend directory after installing requirements:</p><pre>python -m app.mcp.jobs_server</pre><p>No API key or paid model is needed. Public board descriptions are untrusted data, not instructions.</p></div></details>
+      <footer className="desk-footer"><p><strong>Relay</strong> connects a React interface to a FastAPI service and four read-only MCP tools.</p></footer>
     </main>
   </div>;
 }
