@@ -22,6 +22,12 @@
 .desk-columns { display:grid; grid-template-columns:1.16fr 1fr; gap:22px; align-items:start; }
 .desk-panel { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
 .summary-panel { margin-bottom:22px; }
+/* GUESS: UNCALIBRATED GUESS — editorial spacing and type sizes for readability. */
+.summary-panel>summary { padding:16px 20px; font-size:14px; font-weight:600; }
+.desk-heading>div:first-child { max-width:700px; }
+.desk-heading p:not(.eyebrow) { font-size:16px; line-height:1.5; }
+.desk-heading .desk-contract { max-width:350px; flex-shrink:0; }
+.desk-heading .desk-contract p { font-size:14px; }
 .summary-body { padding:20px; }
 .summary-bars { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 22px; }
 .summary-skill { border-bottom:1px solid var(--line); }
@@ -128,5 +134,9 @@
 .desk-footer { padding:28px 0; color:var(--muted); font-size:14px; line-height:1.6; }
 .desk-footer p { margin:0; }
 .lab-notice { background:#edf2eb; padding:12px 24px; font-size:12px; }
+/* SOURCE: main labels and reading text have distinct sizes from secondary metadata. */
+.job-desk label,.job-desk .desk-button,.source-tabs button,.workspace-actions button { font-size:14px; }
+.board-provenance,.field-note,.panel-heading p,.job-company,.board-job small { font-size:12px; }
+.job-desk .listing-text,.job-desk blockquote,.source-document ol { font-size:14px; line-height:1.65; }
 @media(max-width:900px) { .desk-columns { grid-template-columns:1fr; } .desk-heading { align-items:flex-start; } .desk-contract { max-width:260px; } .evidence-detail { grid-template-columns:1fr; } .board-results { max-height:420px; } .summary-bars { grid-template-columns:1fr; } }
 @media(max-width:600px) { .desk-header { align-items:flex-start; flex-direction:column; padding:18px; } .desk-main { padding:25px 16px 0; } .desk-heading { display:block; } .desk-contract { margin-top:20px; max-width:none; } .panel-heading { flex-wrap:wrap; padding:16px; } .desk-header nav { gap:20px; } .desk-footer { flex-direction:column; } .mcp-guide>summary span { display:none; } .evidence-detail { padding:18px; } .summary-skill>summary { grid-template-columns:85px 1fr 52px; gap:8px; } }
