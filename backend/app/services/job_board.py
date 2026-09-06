@@ -89,7 +89,9 @@ async def search_jobs(query: str = "", location: str = "", remote_only: bool = F
         snapshot = _cached
     terms = query.casefold().split()
     rows = [job for job in snapshot["jobs"]
-            if all(term in f"{job['title']} {job['company']} {job['description']}".casefold() for term in terms)
+            # SOURCE: use the evidence review's token boundaries and explicit aliases.
+            # React must not match chemical reactions; SQL must not match MySQL.
+            if all(_mentions(term, f"{job['title']} {job['company']} {job['description']}") for term in terms)
             and location.casefold().strip() in job["location"].casefold()
             and (not remote_only or job["remote"] is True)]
     return {"jobs": rows[:MAX_RESULTS], "matching_count": len(rows), "scanned_count": len(snapshot["jobs"]),

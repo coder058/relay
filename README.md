@@ -2,11 +2,14 @@
 
 A read-only workspace for collecting real job listings, comparing quoted evidence against your chosen skills, and exporting a review you can inspect. The same service is available to MCP clients — not just the browser.
 
+[Project walkthrough: user journey, dependencies and implementation steps](https://coder058.github.io/profile/projects/relay.html).
+
 **[Open the workspace](https://relay-ten-zeta.vercel.app/)** · [Backend API](https://relay-backend-r3ux6b3uwa-ew.a.run.app/docs) · [MCP endpoint](https://relay-backend-r3ux6b3uwa-ew.a.run.app/tools/mcp)
 
 ## What you can actually do
 
 - Read and filter the latest public Arbeitnow API page, with source and fetch time. This is limited board coverage, not a comprehensive search engine.
+- Search uses whole tokens and explicit aliases: React does not match reactions, and SQL does not match MySQL. Literal mentions still need human interpretation.
 - Count literal skill mentions across that bounded result and open every count back to its listing and quote lines. It is not a demand score or market estimate.
 - Paste another listing, choose your own skills, and compare exact quotes with numbered normalized source text.
 - Group canonical-URL duplicates while retaining alternate descriptions and their SHA-256 content fingerprints.
