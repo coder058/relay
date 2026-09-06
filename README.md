@@ -33,6 +33,24 @@ From `backend`, create/activate a Python virtual environment, install `requireme
 
 For stdio, launch `python -m app.mcp.jobs_server` from `backend` using that environment's interpreter. For HTTP, use `http://127.0.0.1:8000/tools/mcp`. Public deployment uses the endpoint linked above. Set `RELAY_CORS_ORIGINS` and `RELAY_MCP_HOSTS` to exact allowed frontend origins/backend hosts on a different deployment. `VITE_API_BASE_URL` selects the browser's backend API; otherwise Vite proxies locally.
 
+### Connect from Cursor (local)
+
+This is how a reviewer or a company engineer would attach the same tools to an MCP client. It is not a hosted customer install.
+
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "python",
+      "args": ["-m", "app.mcp.jobs_server"],
+      "cwd": "/absolute/path/to/relay/backend"
+    }
+  }
+}
+```
+
+Point `command` at the virtualenv interpreter that has `requirements.txt` installed. The tools are read-only. They do not apply to jobs, store CVs or fetch arbitrary URLs.
+
 ## Verification and limits
 
 [Observed job-search walkthrough](JOB_SEARCH_WALKTHROUGH.md): a real query,
