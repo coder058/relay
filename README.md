@@ -1,5 +1,7 @@
 # Relay — Job Evidence Desk
 
+[![CI](https://github.com/coder058/relay/actions/workflows/check.yml/badge.svg)](https://github.com/coder058/relay/actions/workflows/check.yml)
+
 A read-only evidence service: paste a public listing (or load a bounded sample board page), match skills to quoted sentences, export the review. The same matcher is available to MCP clients — not just the browser.
 
 This is **not** a job-search product, a recruiter ATS, or a model that decides eligibility. An agent that calls the tools can still summarise; Relay only returns quotes.
